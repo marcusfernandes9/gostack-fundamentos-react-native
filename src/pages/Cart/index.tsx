@@ -1,62 +1,52 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 
 import { View } from 'react-native';
 
+import formatValue from '../../utils/formatValue';
+import { useCart } from '../../hooks/cart';
+import api from '../../services/api';
+
+import FloatingCart from '../../components/FloatingCart';
+
 import {
   Container,
   ProductContainer,
+  ProductImage,
   ProductList,
   Product,
-  ProductImage,
-  ProductTitleContainer,
   ProductTitle,
-  ProductPriceContainer,
-  ProductSinglePrice,
-  TotalContainer,
+  PriceContainer,
   ProductPrice,
-  ProductQuantity,
-  ActionContainer,
-  ActionButton,
-  TotalProductsContainer,
-  TotalProductsText,
-  SubtotalValue,
+  ProductButton,
 } from './styles';
-
-import { useCart } from '../../hooks/cart';
-
-import formatValue from '../../utils/formatValue';
 
 interface Product {
   id: string;
   title: string;
   image_url: string;
   price: number;
-  quantity: number;
+  quantity: 0;
 }
 
-const Cart: React.FC = () => {
-  const { increment, decrement, products } = useCart();
+const Dashboard: React.FC = () => {
+  const { addToCart, products: productPersisted } = useCart();
 
-  function handleIncrement(id: string): void {
-    // TODO
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    async function loadProducts(): Promise<void> {
+      const response = await api.get('/products');
+
+      setProducts(response.data);
+    }
+
+    loadProducts();
+  }, []);
+
+  function handleAddToCart(item: Product): void {
+    addToCart(item);
   }
-
-  function handleDecrement(id: string): void {
-    // TODO
-  }
-
-  const cartTotal = useMemo(() => {
-    // TODO RETURN THE SUM OF THE QUANTITY OF THE PRODUCTS IN THE CART
-
-    return formatValue(0);
-  }, [products]);
-
-  const totalItensInCart = useMemo(() => {
-    // TODO RETURN THE SUM OF THE QUANTITY OF THE PRODUCTS IN THE CART
-
-    return 0;
-  }, [products]);
 
   return (
     <Container>
@@ -68,50 +58,26 @@ const Cart: React.FC = () => {
           ListFooterComponentStyle={{
             height: 80,
           }}
-          renderItem={({ item }: { item: Product }) => (
+          renderItem={({ item }) => (
             <Product>
               <ProductImage source={{ uri: item.image_url }} />
-              <ProductTitleContainer>
-                <ProductTitle>{item.title}</ProductTitle>
-                <ProductPriceContainer>
-                  <ProductSinglePrice>
-                    {formatValue(item.price)}
-                  </ProductSinglePrice>
-
-                  <TotalContainer>
-                    <ProductQuantity>{`${item.quantity}x`}</ProductQuantity>
-
-                    <ProductPrice>
-                      {formatValue(item.price * item.quantity)}
-                    </ProductPrice>
-                  </TotalContainer>
-                </ProductPriceContainer>
-              </ProductTitleContainer>
-              <ActionContainer>
-                <ActionButton
-                  testID={`increment-${item.id}`}
-                  onPress={() => handleIncrement(item.id)}
+              <ProductTitle>{item.title}</ProductTitle>
+              <PriceContainer>
+                <ProductPrice>{formatValue(item.price)}</ProductPrice>
+                <ProductButton
+                  testID={`add-to-cart-${item.id}`}
+                  onPress={() => handleAddToCart(item)}
                 >
-                  <FeatherIcon name="plus" color="#E83F5B" size={16} />
-                </ActionButton>
-                <ActionButton
-                  testID={`decrement-${item.id}`}
-                  onPress={() => handleDecrement(item.id)}
-                >
-                  <FeatherIcon name="minus" color="#E83F5B" size={16} />
-                </ActionButton>
-              </ActionContainer>
+                  <FeatherIcon size={20} name="plus" color="#C4C4C4" />
+                </ProductButton>
+              </PriceContainer>
             </Product>
           )}
         />
       </ProductContainer>
-      <TotalProductsContainer>
-        <FeatherIcon name="shopping-cart" color="#fff" size={24} />
-        <TotalProductsText>{`${totalItensInCart} itens`}</TotalProductsText>
-        <SubtotalValue>{cartTotal}</SubtotalValue>
-      </TotalProductsContainer>
+      <FloatingCart />
     </Container>
   );
 };
 
-export default Cart;
+export default Dashboard;
